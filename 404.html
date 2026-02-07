@@ -13,9 +13,9 @@
         // Map friendly URLs to actual files
         // Examples: /azurewrath/search -> /nav/search.html
         const routes = {
-            '/azurewrath/': '/azurewrath.html',
-            '/azurewrath': '/azurewrath.html',
-            '/': '/azurewrath.html',
+            '/azurewrath/': '/index.html',
+            '/azurewrath': '/index.html',
+            '/': '/index.html',
         };
         
         // Extract page name from path
@@ -32,7 +32,7 @@
             targetFile = routes[path];
         } else {
             // Default to home
-            targetFile = '/azurewrath.html';
+            targetFile = '/index.html';
         }
         
         // Redirect to the target file
@@ -40,7 +40,7 @@
         window.location.replace(targetFile);
     </script>
     <noscript>
-        <meta http-equiv="refresh" content="0; url=/azurewrath.html">
+        <meta http-equiv="refresh" content="0; url=/index.html">
     </noscript>
     <p>Redirecting...</p>
 </body>
