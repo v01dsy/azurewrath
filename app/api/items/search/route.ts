@@ -16,39 +16,49 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q') || '';
 
-    let where = undefined;
-    if (query.length > 0) {
-      where = {
-        OR: [
-          {
-            name: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-          {
-            assetId: {
-              contains: query,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      };
-    }
 
-    const items = await prisma.item.findMany({
-      ...(where ? { where } : {}),
-      include: {
-        priceHistory: {
-          orderBy: {
-            timestamp: 'desc',
+    let items;
+    if (query.length < 1) {
+      // No query: return all items (up to 2500)
+      items = await prisma.item.findMany({
+        include: {
+          priceHistory: {
+            orderBy: { timestamp: 'desc' },
+            take: 1,
           },
-          take: 1,
+          marketTrends: true,
         },
-        marketTrends: true,
-      },
-      take: 2500,
-    });
+        take: 2500,
+      });
+    } else {
+      // Query: search as before
+      items = await prisma.item.findMany({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: query,
+                mode: 'insensitive',
+              },
+            },
+            {
+              assetId: {
+                contains: query,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        },
+        include: {
+          priceHistory: {
+            orderBy: { timestamp: 'desc' },
+            take: 1,
+          },
+          marketTrends: true,
+        },
+        take: 20,
+      });
+    }
 
     console.log(`Search query: "${query}", found: ${items.length} items`);
     return NextResponse.json(items);
