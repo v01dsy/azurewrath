@@ -22,6 +22,7 @@ model Item {
   priceHistory      PriceHistory[]
   marketTrends      MarketTrends?
   manualValue       ManualValue?
+  sales             Sale[]
   
   @@index([assetId])
 }
@@ -87,4 +88,20 @@ model IngestLog {
   createdAt         DateTime          @default(now())
   
   @@index([createdAt])
+}
+
+model Sale {
+  id                String            @id @default(cuid())
+  itemId            String
+  item              Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  salePrice         Float             // Price sold at
+  sellerUsername    String?           // Seller's Roblox username
+  buyerUsername     String?           // Buyer's Roblox username
+  serialNumber      Int?              // Serial number if applicable
+  
+  saleDate          DateTime          @default(now())
+  
+  @@index([itemId, saleDate])
+  @@index([saleDate])
 }
