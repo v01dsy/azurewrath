@@ -26,7 +26,7 @@ export default function RootLayout({
             <img src="/Images/deals.png" alt="Deals" draggable="false" />
             <p>Deals</p>
           </a>
-          <a href="/dashboard">
+          <a href="/profile">
             <img src="/Images/profile.png" alt="Profile" draggable="false" />
             <p>Profile</p>
           </a>
