@@ -1,0 +1,7 @@
+{
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
