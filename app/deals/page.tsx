@@ -61,28 +61,29 @@ export default function Deals() {
   return (
     <div className="container mx-auto px-2 py-8">
       <h1 className="text-3xl font-bold mb-6">Deals</h1>
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      <div className="mx-auto max-w-6xl px-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {deals.map(item => (
             <Link href={`/items/${item.assetId}`} key={item.id}>
               <div
-                className="rounded-lg p-6 flex flex-col items-center shadow hover:scale-105 transition cursor-pointer border-2"
+                className="rounded-lg p-3 flex flex-col items-center hover:scale-105 transition cursor-pointer border-2"
                 style={{
-                  background: getColor(item.percent) + '55', // 33% opacity
+                  background: getColor(item.percent) + '33', // 20% opacity
                   color: '#fff',
-                  minHeight: 220,
-                  maxWidth: 340,
+                  minHeight: 140,
+                  maxWidth: 220,
                   borderColor: getBorderColor(item.percent),
+                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
                   aspectRatio: '5/3',
                 }}
               >
                 <img
                   src={item.imageUrl || `https://www.roblox.com/asset-thumbnail/image?assetId=${item.assetId}&width=150&height=150&format=png`}
                   alt={item.name}
-                  className="w-24 h-24 object-cover rounded mb-3 border border-white/20"
-                  style={{ background: '#222' }}
+                  className="w-16 h-16 object-contain mb-1"
+                  style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}
                 />
-                <h2 className="text-lg font-bold mb-2 text-center w-full truncate" title={item.name} style={{color:'#fff',textShadow:'0 1px 4px #000'}}> {item.name} </h2>
+                <h2 className="text-base font-bold mb-1 text-center w-full truncate" title={item.name} style={{color:'#fff',textShadow:'0 1px 4px #000', fontWeight:600, letterSpacing:'0.01em'}}>{item.name}</h2>
                 <div className="text-xl font-bold mb-1">Deal {item.percent}%</div>
                 <div className="text-base text-white/90">Price: {item.bestPrice.toLocaleString()}</div>
                 <div className="text-base text-white/90">RAP: {item.rap.toLocaleString()}</div>
