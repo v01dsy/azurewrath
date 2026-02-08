@@ -57,17 +57,17 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white text-xl">Loading profile...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-900">
       <div className="container mx-auto px-4 py-8">
         {/* Profile Header */}
-        <div className="bg-slate-800/50 rounded-2xl border border-purple-500/20 p-8 mb-6 backdrop-blur-sm">
+        <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-8 mb-6">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             {/* Avatar */}
             <div className="relative">
@@ -130,7 +130,7 @@ export default function Profile() {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-slate-800/50 rounded-2xl border border-purple-500/20 p-6 backdrop-blur-sm">
+        <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-6">
           {activeTab === "inventory" && (
             <InventoryTab items={inventory} />
           )}
@@ -141,6 +141,9 @@ export default function Profile() {
             <StatsTab stats={stats} user={user} />
           )}
         </div>
+
+        {/* Roblox Authentication */}
+        <RobloxAuthSection />
       </div>
     </div>
   );
@@ -299,6 +302,63 @@ function StatRow({ label, value }: { label: string; value: string | number }) {
     <div className="flex justify-between items-center">
       <span className="text-purple-300">{label}</span>
       <span className="text-white font-semibold">{value}</span>
+    </div>
+  );
+}
+
+function RobloxAuthSection() {
+  const [username, setUsername] = useState("");
+  const [code, setCode] = useState(() => Math.floor(100 + Math.random() * 900).toString());
+  const [status, setStatus] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const handleCheck = async () => {
+    setChecking(true);
+    setStatus(null);
+    try {
+      // Fetch Roblox profile
+      const res = await fetch(`https://users.roblox.com/v1/users/search?keyword=${username}`);
+      const data = await res.json();
+      const userId = data.data?.[0]?.id;
+      if (!userId) {
+        setStatus("User not found.");
+        setChecking(false);
+        return;
+      }
+      const profileRes = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+      const profileData = await profileRes.json();
+      if (profileData.description?.includes(code)) {
+        setStatus("Authentication successful!");
+      } else {
+        setStatus("Bio does not contain the code. Please update your Roblox bio and try again.");
+      }
+    } catch (err) {
+      setStatus("Error checking Roblox bio.");
+    }
+    setChecking(false);
+  };
+
+  return (
+    <div className="bg-slate-700 rounded-lg p-6 border border-purple-500/10 mb-8">
+      <h3 className="text-xl font-bold text-white mb-2">Roblox Account Authentication</h3>
+      <div className="mb-2 text-purple-300">Enter your Roblox username and set your bio to <span className="font-mono bg-slate-800 px-2 py-1 rounded">{code}</span> to verify ownership.</div>
+      <div className="flex gap-2 mb-2">
+        <input
+          type="text"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          placeholder="Roblox username"
+          className="px-4 py-2 rounded bg-slate-800 text-white border border-purple-500/20 focus:border-purple-500 outline-none"
+        />
+        <button
+          onClick={handleCheck}
+          disabled={checking || !username}
+          className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg"
+        >
+          {checking ? "Checking..." : "Authenticate"}
+        </button>
+      </div>
+      {status && <div className="mt-2 text-purple-300">{status}</div>}
     </div>
   );
 }
