@@ -14,7 +14,7 @@ export default function DashboardPage() {
       
       <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-br from-neon-purple/10 to-transparent border border-neon-purple/20 rounded-lg p-6">
-          <div className="text-3xl mb-3">�</div>
+          <div className="text-3xl mb-3">💎</div>
           <h3 className="text-xl font-semibold mb-2">Best Deals</h3>
           <p className="text-slate-400">Discover the hottest deals on rare collectibles.</p>
         </div>
