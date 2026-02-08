@@ -1,0 +1,61 @@
+import { PrismaClient } from '@prisma/client';
+import { fetchRobloxItemData, fetchPriceData } from './lib/robloxApi';
+
+const prisma = new PrismaClient();
+
+/**
+ * Update item data from Roblox API
+ * Run with: node scripts/updateItemsFromRoblox.js
+ */
+async function updateItemsFromRoblox() {
+  console.log('🔄 Fetching Roblox data for all items...');
+
+  try {
+    const items = await prisma.item.findMany();
+
+    for (const item of items) {
+      console.log(`📥 Fetching data for ${item.name} (${item.assetId})...`);
+
+      // Fetch from Roblox API
+      const robloxData = await fetchRobloxItemData(item.assetId);
+      if (robloxData) {
+        // Update item
+        await prisma.item.update({
+          where: { id: item.id },
+          data: {
+            name: robloxData.name || item.name,
+            description: robloxData.description || item.description,
+            imageUrl: robloxData.imageUrl || item.imageUrl,
+          },
+        });
+        console.log(`✅ Updated ${robloxData.name}`);
+      }
+
+      // Fetch price data
+      const priceData = await fetchPriceData(item.assetId);
+      if (priceData) {
+        await prisma.priceHistory.create({
+          data: {
+            itemId: item.id,
+            price: priceData.price || 0,
+            rap: priceData.rap,
+            lowestResale: priceData.lowestResale,
+            salesVolume: 0,
+          },
+        });
+        console.log(`💰 Price data: ${priceData.price} Robux`);
+      }
+
+      // Add delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    console.log('✅ All items updated!');
+  } catch (error) {
+    console.error('Update failed:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+updateItemsFromRoblox();
