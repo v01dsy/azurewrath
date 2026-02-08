@@ -76,38 +76,28 @@ export default function Deals() {
                   boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
                 }}
               >
-                <div className="flex flex-col w-full h-full">
-                  <h2
-                    className="text-base font-bold mb-2 text-left w-full truncate fade-right"
-                    title={item.name}
-                    style={{ color: '#fff', textShadow: '0 1px 4px #000', fontWeight: 600, letterSpacing: '0.01em', maxWidth: '100%' }}
-                  >
-                    {item.name}
-                  </h2>
+                <h2 className="text-base font-bold mb-3 text-left truncate w-full" title={item.name} style={{color:'#fff',textShadow:'0 1px 4px #000', fontWeight:600, letterSpacing:'0.01em'}}>{item.name}</h2>
+                <div className="flex flex-row items-start w-full gap-3">
                   <img
                     src={item.imageUrl || `https://www.roblox.com/asset-thumbnail/image?assetId=${item.assetId}&width=220&height=220&format=png`}
                     alt={item.name}
-                    className="w-24 h-24 object-contain mx-auto mb-2"
+                    className="w-24 h-24 object-contain flex-shrink-0"
                     style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}
                   />
-                  <div className="flex flex-col gap-1 mt-1 w-full">
-                    <div className="flex flex-row justify-between w-full">
-                      <span className="font-bold">Price</span>
-                      <span className="text-white/90 truncate fade-right" style={{ maxWidth: '90px', textAlign: 'right' }}>
-                        {item.bestPrice.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex flex-row justify-between w-full">
-                      <span className="font-bold">Deal</span>
-                      <span className="text-white/90 truncate fade-right" style={{ maxWidth: '90px', textAlign: 'right' }}>
-                        {item.percent}%
-                      </span>
-                    </div>
-                    <div className="flex flex-row justify-between w-full">
-                      <span className="font-bold">RAP</span>
-                      <span className="text-white/90 truncate fade-right" style={{ maxWidth: '90px', textAlign: 'right' }}>
-                        {item.rap.toLocaleString()}
-                      </span>
+                  <div className="flex flex-col justify-between flex-1 min-w-0">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-row justify-between w-full gap-2">
+                        <span className="font-bold flex-shrink-0">Price</span>
+                        <span className="text-white/90 truncate">{item.bestPrice.toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-row justify-between w-full gap-2">
+                        <span className="font-bold flex-shrink-0">Deal</span>
+                        <span className="text-white/90 truncate">{item.percent}%</span>
+                      </div>
+                      <div className="flex flex-row justify-between w-full gap-2">
+                        <span className="font-bold flex-shrink-0">RAP</span>
+                        <span className="text-white/90 truncate">{item.rap.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -119,23 +109,3 @@ export default function Deals() {
     </div>
   );
 }
-
-/* Fade out effect for overflowed text */
-<style jsx>{`
-  .fade-right {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    position: relative;
-  }
-  .fade-right:after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 2.5em;
-    height: 100%;
-    pointer-events: none;
-    background: linear-gradient(to right, transparent, #222 80%);
-  }
-`}</style>
