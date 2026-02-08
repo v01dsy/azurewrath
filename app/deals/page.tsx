@@ -13,6 +13,15 @@ const getColor = (percent: number) => {
   return "#b0b8c1"; // Soft grey
 };
 
+const getBorderColor = (percent: number) => {
+  if (percent >= 75) return "#c2185b"; // Deep pink
+  if (percent >= 50) return "#bfa600"; // Deep gold
+  if (percent >= 40) return "#6c2eb7"; // Deep purple
+  if (percent >= 30) return "#1976d2"; // Deep blue
+  if (percent >= 20) return "#1b8a5a"; // Deep green
+  return "#7b8794"; // Deep grey
+};
+
 interface DealItem {
   id: string;
   assetId: string;
@@ -53,12 +62,19 @@ export default function Deals() {
     <div className="container mx-auto px-2 py-8">
       <h1 className="text-3xl font-bold mb-6">Deals</h1>
       <div className="mx-auto max-w-6xl px-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
           {deals.map(item => (
             <Link href={`/items/${item.assetId}`} key={item.id}>
               <div
-                className="rounded-lg p-4 flex flex-col items-center shadow hover:scale-105 transition cursor-pointer border-2 border-transparent"
-                style={{ background: getColor(item.percent) + 'CC', color: '#fff', minHeight: 180, maxWidth: 180 }} // 'CC' = 80% opacity in hex
+                className="rounded-lg p-3 flex flex-col items-center shadow hover:scale-105 transition cursor-pointer border-2"
+                style={{
+                  background: getColor(item.percent) + '80', // 50% opacity
+                  color: '#fff',
+                  minHeight: 120,
+                  maxWidth: 170,
+                  borderColor: getBorderColor(item.percent),
+                  aspectRatio: '5/4',
+                }}
               >
                 <img
                   src={item.imageUrl || `https://www.roblox.com/asset-thumbnail/image?assetId=${item.assetId}&width=150&height=150&format=png`}
@@ -69,7 +85,7 @@ export default function Deals() {
                 <h2 className="text-sm font-semibold mb-1 text-center w-full truncate" title={item.name}>{item.name}</h2>
                 <div className="text-lg font-bold mb-0.5">{item.percent}%</div>
                 <div className="text-xs text-white/80">RAP: {item.rap}</div>
-                <div className="text-xs text-white/80">Best: {item.bestPrice}</div>
+                <div className="text-xs text-white/80">Price: {item.bestPrice}</div>
               </div>
             </Link>
           ))}
