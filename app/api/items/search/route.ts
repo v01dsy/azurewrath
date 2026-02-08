@@ -16,12 +16,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q') || '';
 
-    if (query.length < 1) {
-      return NextResponse.json([]);
-    }
-
-    const items = await prisma.item.findMany({
-      where: {
+    let where = undefined;
+    if (query.length > 0) {
+      where = {
         OR: [
           {
             name: {
@@ -36,7 +33,11 @@ export async function GET(request: NextRequest) {
             },
           },
         ],
-      },
+      };
+    }
+
+    const items = await prisma.item.findMany({
+      ...(where ? { where } : {}),
       include: {
         priceHistory: {
           orderBy: {
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
         },
         marketTrends: true,
       },
-      take: 20,
+      take: 2500,
     });
 
     console.log(`Search query: "${query}", found: ${items.length} items`);
