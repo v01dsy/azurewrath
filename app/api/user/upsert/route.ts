@@ -19,6 +19,10 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(user);
   } catch (error) {
-    return NextResponse.json({ error: error?.message || 'Failed to upsert user' }, { status: 500 });
+    let message = 'Failed to upsert user';
+    if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
+      message = (error as any).message;
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
