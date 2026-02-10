@@ -135,9 +135,10 @@ model InventoryItem {
   id          String            @id @default(cuid())
   snapshotId  String
   snapshot    InventorySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  assetId     String            // ADD THIS BACK
+  assetId     String
   item        Item?             @relation(fields: [assetId], references: [assetId])
   userAssetId String
+  scannedAt   DateTime          @default(now())  // ADD THIS LINE
   
   @@index([snapshotId])
   @@index([assetId])

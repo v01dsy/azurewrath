@@ -12,15 +12,63 @@ export async function saveInventorySnapshot(userId: string, robloxUserId: string
     new Map(inventory.map(item => [item.userAssetId, item])).values()
   );
   
-  // Create snapshot with individual userAssetId tracking
+  // Check if there's a snapshot from today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const todaySnapshot = await prisma.inventorySnapshot.findFirst({
+    where: {
+      userId,
+      createdAt: { gte: today }
+    },
+    include: {
+      items: true
+    }
+  });
+  
+  // If snapshot exists from today, delete it (we'll replace it)
+  if (todaySnapshot) {
+    await prisma.inventorySnapshot.delete({
+      where: { id: todaySnapshot.id }
+    });
+  }
+  
+  // Get the previous snapshot (not from today) to preserve scannedAt times
+  const previousSnapshot = await prisma.inventorySnapshot.findFirst({
+    where: {
+      userId,
+      createdAt: { lt: today }
+    },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      items: true
+    }
+  });
+  
+  // Create a map of userAssetId -> scannedAt from previous snapshot
+  const previousScannedTimes = new Map<string, Date>();
+  if (previousSnapshot) {
+    previousSnapshot.items.forEach(item => {
+      previousScannedTimes.set(item.userAssetId, item.scannedAt);
+    });
+  }
+  
+  // Create snapshot with preserved scannedAt times for existing items
   const snapshot = await prisma.inventorySnapshot.create({
     data: {
       userId,
       items: {
-        create: uniqueItems.map((item: any) => ({
-          assetId: item.assetId.toString(),
-          userAssetId: item.userAssetId.toString(),
-        })),
+        create: uniqueItems.map((item: any) => {
+          const userAssetId = item.userAssetId.toString();
+          const existingScannedAt = previousScannedTimes.get(userAssetId);
+          
+          return {
+            assetId: item.assetId.toString(),
+            userAssetId: userAssetId,
+            // If item existed before, use old scannedAt, otherwise use now
+            scannedAt: existingScannedAt || new Date()
+          };
+        }),
       },
     },
     include: {

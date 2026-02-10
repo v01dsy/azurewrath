@@ -1,9 +1,23 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getUserSession } from "@/lib/userSession";
+
 export default function Home() {
+  const [profileHref, setProfileHref] = useState("/verify");
+
+  useEffect(() => {
+    const user = getUserSession();
+    if (user && user.robloxUserId) {
+      setProfileHref(`/player/${user.robloxUserId}`);
+    }
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-16 space-y-12">
       <section className="text-center space-y-4">
         <h1 className="text-6xl font-bold glow-purple">
-          Azurewrath
+          Welcome to Azurewrath
         </h1>
         <p className="text-2xl text-slate-400 max-w-2xl mx-auto">
           Your ultimate destination for Roblox Limited trading.
@@ -37,12 +51,12 @@ export default function Home() {
       </div>
 
       <section className="text-center mt-16">
-        <a 
-          href="/dashboard" 
+        <Link
+          href={profileHref}
           className="inline-block bg-gradient-to-r from-neon-blue to-neon-purple px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition"
         >
           Get Started →
-        </a>
+        </Link>
       </section>
     </div>
   );

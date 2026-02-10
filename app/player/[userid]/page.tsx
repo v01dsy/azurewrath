@@ -104,37 +104,52 @@ export default async function PlayerPage({ params }: { params: Promise<{ userid:
   }
   
   // Check if inventory has changed by comparing UAIDs
-  let needsNewSnapshot = false;
-  let inventoryToProcess = inventory;
+let needsNewSnapshot = true;
 
-  if (latestSnapshot && latestSnapshot.items) {
-    // Get UAIDs from snapshot
-    const snapshotUAIDs = new Set((latestSnapshot.items as any[]).map(item => item.userAssetId));
-    
-    // Filter to only NEW items (items not in last snapshot)
-    const newItems = inventory.filter((item: any) => !snapshotUAIDs.has(item.userAssetId.toString()));
-    
-    console.log('Total inventory:', inventory.length);
-    console.log('Items in last snapshot:', snapshotUAIDs.size);
-    console.log('NEW items to process:', newItems.length);
-    
-    if (newItems.length > 0) {
-      inventoryToProcess = newItems;
-      needsNewSnapshot = true;
-    } else {
-      // No new items, use the snapshot data
-      inventoryToProcess = [];
-      needsNewSnapshot = false;
-    }
+if (latestSnapshot && latestSnapshot.items) {
+  // Get UAIDs from both
+  const currentUAIDs = new Set(inventory.map((item: any) => item.userAssetId.toString()));
+  const snapshotUAIDs = new Set((latestSnapshot.items as any[]).map(item => item.userAssetId));
+  
+  console.log('Current inventory:', currentUAIDs.size);
+  console.log('Last snapshot:', snapshotUAIDs.size);
+  
+  // Check if UAIDs are identical
+  const uaidsMatch = currentUAIDs.size === snapshotUAIDs.size && 
+                     [...currentUAIDs].every(uaid => snapshotUAIDs.has(uaid));
+  
+  // Check if the latest snapshot is from today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const snapshotDate = new Date(latestSnapshot.createdAt);
+  snapshotDate.setHours(0, 0, 0, 0);
+  const isFromToday = snapshotDate.getTime() === today.getTime();
+  
+  if (uaidsMatch) {
+    // Inventory hasn't changed, don't create new snapshot
+    console.log('Inventory unchanged, skipping snapshot');
+    needsNewSnapshot = false;
+  } else if (isFromToday) {
+    // Inventory changed and snapshot is from today - delete old one
+    console.log('Inventory changed, updating today\'s snapshot');
+    await prisma.inventorySnapshot.delete({
+      where: { id: latestSnapshot.id }
+    });
+    needsNewSnapshot = true;
   } else {
-    // No previous snapshot, process everything
+    // Inventory changed and snapshot is from previous day - create new
+    console.log('Inventory changed, creating new snapshot');
     needsNewSnapshot = true;
   }
+} else {
+  // No previous snapshot, create one
+  needsNewSnapshot = true;
+}
 
-  // Only save new snapshot if inventory has changed
-  if (needsNewSnapshot) {
-    await saveInventorySnapshot(user.id, user.robloxUserId);
-  }
+// Only save new snapshot if inventory has changed
+if (needsNewSnapshot) {
+  await saveInventorySnapshot(user.id, user.robloxUserId);
+}
 
   // Fetch historical snapshots for graph
   const snapshots = await prisma.inventorySnapshot.findMany({

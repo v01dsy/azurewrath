@@ -9,10 +9,12 @@ interface InventoryGraphProps {
     rap: number;
     itemCount: number;
     uniqueCount: number;
+    snapshotId?: string;
   }>;
+  onPointClick?: (snapshotId: string, date: string) => void;
 }
 
-export default function InventoryGraph({ data }: InventoryGraphProps) {
+export default function InventoryGraph({ data, onPointClick }: InventoryGraphProps) {
   const [hiddenLines, setHiddenLines] = useState<Set<string>>(new Set());
 
   const handleLegendClick = (dataKey: string) => {
@@ -25,6 +27,15 @@ export default function InventoryGraph({ data }: InventoryGraphProps) {
       }
       return newSet;
     });
+  };
+
+  const handleClick = (data: any) => {
+    if (data && data.activePayload && data.activePayload[0]) {
+      const payload = data.activePayload[0].payload;
+      if (payload.snapshotId && onPointClick) {
+        onPointClick(payload.snapshotId, payload.date);
+      }
+    }
   };
 
   const legendItems = [
@@ -98,7 +109,12 @@ export default function InventoryGraph({ data }: InventoryGraphProps) {
     <div className="w-full flex flex-col" style={{ height: '100%', minHeight: '400px' }}>
       <div className="flex-1" style={{ minHeight: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <LineChart 
+            data={data} 
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            onClick={handleClick}
+            style={{ cursor: onPointClick ? 'pointer' : 'default' }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis
               dataKey="date"
@@ -143,7 +159,8 @@ export default function InventoryGraph({ data }: InventoryGraphProps) {
                 stroke="#34d399"
                 strokeWidth={3}
                 name="Total RAP"
-                dot={{ fill: '#34d399' }}
+                dot={{ fill: '#34d399', r: 4 }}
+                activeDot={{ r: 6, cursor: 'pointer' }}
               />
             )}
             {!hiddenLines.has('itemCount') && (
@@ -154,7 +171,8 @@ export default function InventoryGraph({ data }: InventoryGraphProps) {
                 stroke="#60a5fa"
                 strokeWidth={2}
                 name="Total Items"
-                dot={{ fill: '#60a5fa' }}
+                dot={{ fill: '#60a5fa', r: 4 }}
+                activeDot={{ r: 6, cursor: 'pointer' }}
               />
             )}
             {!hiddenLines.has('uniqueCount') && (
@@ -165,7 +183,8 @@ export default function InventoryGraph({ data }: InventoryGraphProps) {
                 stroke="#a78bfa"
                 strokeWidth={2}
                 name="Unique Limiteds"
-                dot={{ fill: '#a78bfa' }}
+                dot={{ fill: '#a78bfa', r: 4 }}
+                activeDot={{ r: 6, cursor: 'pointer' }}
               />
             )}
           </LineChart>
