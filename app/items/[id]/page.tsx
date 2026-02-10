@@ -11,6 +11,8 @@ interface ItemDetail {
   name: string;
   imageUrl?: string;
   description?: string;
+  currentPrice?: number;  // ADDED
+  currentRap?: number;    // ADDED
   priceHistory: Array<{
     id: string;
     price: number;
@@ -27,6 +29,7 @@ interface ItemDetail {
     estimatedDemand: number;
   };
 }
+
 
 export default function ItemPage() {
   const params = useParams();
@@ -81,8 +84,10 @@ export default function ItemPage() {
       rap: ph.rap,
     }));
 
-  const currentPrice = item.priceHistory[0]?.lowestResale ?? item.priceHistory[0]?.price;
-  const currentRAP = item.priceHistory[0]?.rap;
+ // CHANGED THESE TWO LINES
+  const currentPrice = item.currentPrice;
+  const currentRAP = item.currentRap;
+  
   const displayImageUrl = item.imageUrl
     ?? `https://www.roblox.com/asset-thumbnail/image?assetId=${item.assetId}&width=420&height=420&format=png`;
 
@@ -217,7 +222,7 @@ export default function ItemPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 bg-gradient-to-r from-neon-purple to-neon-magenta px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition text-center"
-            >
+              >
               View on Roblox 🔗
             </a>
           </div>

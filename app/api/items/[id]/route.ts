@@ -27,6 +27,7 @@ export async function GET(
           orderBy: {
             timestamp: 'desc',
           },
+          take: 1, // Only get the most recent price history
         },
         marketTrends: true,
       },
@@ -39,7 +40,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(item);
+    // Add latest price data to the top level for easier access
+    const latestPrice = item.priceHistory[0];
+    const response = {
+      ...item,
+      currentPrice: latestPrice?.price || null,
+      currentRap: latestPrice?.rap || null,
+      lowestResale: latestPrice?.lowestResale || null,
+      lastUpdated: latestPrice?.timestamp || null,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Fetch item error:', error);
     return NextResponse.json(
