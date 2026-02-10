@@ -24,7 +24,7 @@ export default function ClientInventoryGrid({ items, scannedTime }: { items: any
   });
 
   return (
-    <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-8 shadow-lg">
+    <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-8 shadow-lg min-h-[400px] flex flex-col justify-center">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">Inventory</h2>
         <select 
@@ -39,7 +39,6 @@ export default function ClientInventoryGrid({ items, scannedTime }: { items: any
           <option value="name">Name (A-Z)</option>
         </select>
       </div>
-      
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
         {sortedItems.map((item: any) => (
           <div key={item.assetId} className="bg-slate-700 rounded-lg p-4 border border-purple-500/10 hover:border-purple-500/30 transition-all">

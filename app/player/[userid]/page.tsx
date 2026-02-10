@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { fetchRobloxUserInfo, fetchRobloxHeadshotUrl, scanFullInventory } from '@/lib/robloxApi';
 import { saveInventorySnapshot } from '@/lib/inventoryTracker';
 import ClientInventoryGrid from '@/app/player/[userid]/ClientInventoryGrid';
+import InventoryGraph from '@/app/player/[userid]/InventoryGraph';
 
 const prisma = new PrismaClient();
 
@@ -40,28 +41,26 @@ export default async function PlayerPage({ params }: { params: Promise<{ userid:
     }
   }
 
-  // If user not found, create profile from Roblox info
+  // If user not found, show prompt instead of auto-creating
   if (!user && userid) {
-    try {
-      const robloxInfo = await fetchRobloxUserInfo(userid);
-      const avatarUrl = await fetchRobloxHeadshotUrl(robloxInfo.id.toString());
-      
-      user = await prisma.user.create({
-        data: {
-          robloxUserId: robloxInfo.id.toString(),
-          username: robloxInfo.name,
-          displayName: robloxInfo.displayName,
-          avatarUrl: avatarUrl || '',
-          description: robloxInfo.description,
-        },
-      });
-    } catch (e) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-900">
-          <div className="text-white text-2xl">User not found and could not be created.</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-8 text-center max-w-md">
+          <h2 className="text-white text-2xl mb-4">User Not in Database</h2>
+          <p className="text-slate-400 mb-6">
+            This user isn't in the database yet. Would you like to add them?
+          </p>
+          <form action={`/api/load-user/${userid}`} method="POST">
+            <button 
+              type="submit"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Add User to Database
+            </button>
+          </form>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   if (!user) {
@@ -71,6 +70,22 @@ export default async function PlayerPage({ params }: { params: Promise<{ userid:
       </div>
     );
   }
+
+  // Fetch avatar image
+  const avatarResponse = await fetch(
+    `https://thumbnails.roblox.com/v1/users/avatar?userIds=${user.robloxUserId}&size=420x420&format=Png&isCircular=false`
+  );
+  const avatarData = await avatarResponse.json();
+  const avatarImageUrl = avatarData.data?.[0]?.imageUrl;
+
+  // Fetch latest snapshot first to check if we need to rescan
+  const latestSnapshot = await prisma.inventorySnapshot.findFirst({
+    where: { userId: user.id },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      items: true
+    }
+  });
 
   // Fetch inventory from Roblox
   const inventory = await scanFullInventory(user.robloxUserId);
@@ -88,28 +103,78 @@ export default async function PlayerPage({ params }: { params: Promise<{ userid:
     );
   }
   
-  // Save snapshot if we don't have one from today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const todaySnapshot = await prisma.inventorySnapshot.findFirst({
-    where: {
-      userId: user.id,
-      createdAt: { gte: today },
-    },
-  });
-  
-  if (!todaySnapshot) {
+  // Check if inventory has changed by comparing UAIDs
+  let needsNewSnapshot = false;
+  let inventoryToProcess = inventory;
+
+  if (latestSnapshot && latestSnapshot.items) {
+    // Get UAIDs from snapshot
+    const snapshotUAIDs = new Set((latestSnapshot.items as any[]).map(item => item.userAssetId));
+    
+    // Filter to only NEW items (items not in last snapshot)
+    const newItems = inventory.filter((item: any) => !snapshotUAIDs.has(item.userAssetId.toString()));
+    
+    console.log('Total inventory:', inventory.length);
+    console.log('Items in last snapshot:', snapshotUAIDs.size);
+    console.log('NEW items to process:', newItems.length);
+    
+    if (newItems.length > 0) {
+      inventoryToProcess = newItems;
+      needsNewSnapshot = true;
+    } else {
+      // No new items, use the snapshot data
+      inventoryToProcess = [];
+      needsNewSnapshot = false;
+    }
+  } else {
+    // No previous snapshot, process everything
+    needsNewSnapshot = true;
+  }
+
+  // Only save new snapshot if inventory has changed
+  if (needsNewSnapshot) {
     await saveInventorySnapshot(user.id, user.robloxUserId);
   }
 
-  // Fetch latest snapshot for timestamp
-  const latestSnapshot = await prisma.inventorySnapshot.findFirst({
+  // Fetch historical snapshots for graph
+  const snapshots = await prisma.inventorySnapshot.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      items: {
+        include: {
+          item: {
+            include: {
+              priceHistory: {
+                orderBy: { timestamp: 'desc' },
+                take: 1
+              }
+            }
+          }
+        }
+      }
+    },
+    take: 30 // Last 30 snapshots
+  });
+
+  // Process snapshots into graph data
+  const graphData = snapshots.map(snapshot => {
+    const totalRAP = snapshot.items.reduce((sum, item) => {
+      const rap = item.item?.priceHistory[0]?.rap || 0;
+      return sum + rap;
+    }, 0);
+
+    const uniqueItems = new Set(snapshot.items.map(item => item.assetId)).size;
+
+    return {
+      date: new Date(snapshot.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      rap: totalRAP,
+      itemCount: snapshot.items.length,
+      uniqueCount: uniqueItems
+    };
   });
   
-  // Get unique assetIds
+  // Get unique assetIds from FULL inventory (not just new items)
   const assetIds = [...new Set(inventory.map((item: any) => item.assetId.toString()))];
   
   // Fetch item data from database
@@ -132,7 +197,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ userid:
   // Create a map for quick lookup
   const itemMap = new Map(dbItems.map(item => [item.assetId, item]));
   
-  // Group items by assetId and count, enriching with database data
+  // Group items by assetId and count, enriching with database data (use FULL inventory)
   const itemCounts = inventory.reduce((acc: any, item: any) => {
     const id = item.assetId.toString();
     if (!acc[id]) {
@@ -163,43 +228,67 @@ export default async function PlayerPage({ params }: { params: Promise<{ userid:
 
   return (
     <div className="min-h-screen bg-slate-900 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Profile Card */}
-        <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-8 mb-8 shadow-lg flex flex-col items-center">
-          {user.avatarUrl && (
-            <img 
-              src={user.avatarUrl} 
-              alt={user.username} 
-              width={150} 
-              height={150} 
-              className="rounded-full mb-4"
-            />
-          )}
-          <h1 className="text-3xl font-bold text-white mb-2">{user.displayName || user.username}</h1>
-          <p className="text-purple-300 mb-2">@{user.username}</p>
-          {user.description && <p className="text-slate-300 mb-4 text-center">{user.description}</p>}
-          <div className="text-slate-400 text-sm">Roblox User ID: {user.robloxUserId}</div>
-          
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4 mt-6 w-full max-w-md">
-            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-              <p className="text-slate-400 text-xs mb-1">Total Items</p>
-              <p className="text-white text-2xl font-bold">{inventory.length}</p>
+      <div className="max-w-7xl mx-auto">
+        {/* Top Row - Sidebar + Graph */}
+        <div className="flex items-stretch gap-6 mb-8">
+          {/* Left Sidebar - Avatar & Profile Info */}
+          <div className="w-80 flex-shrink-0">
+            <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-6 h-full">
+              {avatarImageUrl ? (
+                <img
+                  src={avatarImageUrl}
+                  alt={`${user.displayName || user.username}'s avatar`}
+                  className="w-full h-auto rounded-lg mb-6"
+                />
+              ) : (
+                <div className="w-full aspect-square bg-slate-700/50 rounded-lg flex items-center justify-center mb-6">
+                  <span className="text-slate-400">Loading...</span>
+                </div>
+              )}
+
+              {/* Profile Info */}
+              <div className="space-y-3">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">{user.displayName || user.username}</h1>
+                  <p className="text-purple-300">@{user.username}</p>
+                </div>
+                {user.description && (
+                  <p className="text-slate-300 text-sm">{user.description}</p>
+                )}
+                <div className="text-slate-400 text-xs">
+                  Roblox ID: {user.robloxUserId}
+                </div>
+                {/* Stats */}
+                <div className="space-y-2 pt-4 border-t border-slate-700">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-sm">Total Items</span>
+                    <span className="text-blue-400 font-semibold">{inventory.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-sm">Unique Items</span>
+                    <span className="text-purple-400 font-semibold">{uniqueItems.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 text-sm">Total RAP</span>
+                    <span className="text-green-400 font-semibold">{totalRAP.toLocaleString()} R$</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-              <p className="text-slate-400 text-xs mb-1">Unique Items</p>
-              <p className="text-white text-2xl font-bold">{uniqueItems.length}</p>
-            </div>
-            <div className="bg-purple-900/30 rounded-lg p-4 text-center border border-purple-500/30">
-              <p className="text-purple-300 text-xs mb-1">Total RAP</p>
-              <p className="text-purple-400 text-2xl font-bold">{totalRAP.toLocaleString()}</p>
-              <p className="text-purple-300 text-xs">R$</p>
+          </div>
+
+          {/* Right Side - Graph */}
+          <div className="flex-1 min-h-[400px]">
+            <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-8 h-full">
+              <InventoryGraph data={graphData} />
             </div>
           </div>
         </div>
 
-        {/* Inventory Grid with Sorting */}
-        <ClientInventoryGrid items={uniqueItems} scannedTime={scannedTime} />
+        {/* Inventory Grid - Full Width Below */}
+        <div>
+          <ClientInventoryGrid items={uniqueItems} scannedTime={scannedTime} />
+        </div>
       </div>
     </div>
   );
