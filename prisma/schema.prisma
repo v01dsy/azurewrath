@@ -23,6 +23,7 @@ model Item {
   marketTrends      MarketTrends?
   manualValue       ManualValue?
   sales             Sale[]
+  inventoryItems    InventoryItem[]
   
   @@index([assetId])
 }
@@ -107,12 +108,38 @@ model Sale {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  robloxUserId      String   @unique
+  id                String              @id @default(cuid())
+  robloxUserId      String              @unique
   username          String
   displayName       String?
   avatarUrl         String?
   description       String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  inventorySnapshots InventorySnapshot[]
+}
+
+model InventorySnapshot {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     InventoryItem[]
+  createdAt DateTime        @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model InventoryItem {
+  id          String            @id @default(cuid())
+  snapshotId  String
+  snapshot    InventorySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  assetId     String            // ADD THIS BACK
+  item        Item?             @relation(fields: [assetId], references: [assetId])
+  userAssetId String
+  
+  @@index([snapshotId])
+  @@index([assetId])
+  @@index([userAssetId])
 }

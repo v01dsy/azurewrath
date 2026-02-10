@@ -16,12 +16,19 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'www.roblox.com',
+        port: '',
+        pathname: '/asset-thumbnail/image/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'tr.rbxcdn.com',
         port: '',
         pathname: '/**',
       },
     ],
   },
+  turbopack: {}, // Silences the warning
 };
 
 export default nextConfig;

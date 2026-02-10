@@ -5,8 +5,6 @@ import { setUserSession } from "../lib/userSession";
 
 export default function RobloxAuthSection() {
   const [username, setUsername] = useState("");
-  // const [code, setCode] = useState(() => Math.floor(100 + Math.random() * 900).toString());
-  // Use a constant code for verification
   const code = "676";
   const [status, setStatus] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -50,6 +48,12 @@ export default function RobloxAuthSection() {
       }
       if (profileData.description.includes(code)) {
         setStatus("Authentication successful!");
+        
+        // Fetch the real avatar URL using the API route
+        const headshotRes = await fetch(`/api/roblox/headshot?userId=${userId}`);
+        const headshotData = await headshotRes.json();
+        const avatarUrl = headshotData.imageUrl || null;
+        
         // Upsert user in DB
         fetch("/api/user/upsert", {
           method: "POST",
@@ -58,7 +62,7 @@ export default function RobloxAuthSection() {
             robloxUserId: userId,
             username: profileData.name,
             displayName: profileData.displayName,
-            avatarUrl: `https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=150&height=150&format=png`,
+            avatarUrl: avatarUrl,
             description: profileData.description,
           }),
         })
@@ -74,7 +78,7 @@ export default function RobloxAuthSection() {
             robloxUserId: userId,
             username: profileData.name,
             displayName: profileData.displayName,
-            avatarUrl: `https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=150&height=150&format=png`,
+            avatarUrl: avatarUrl,
           });
           setTimeout(() => {
             router.push(`/player/${userId}`);

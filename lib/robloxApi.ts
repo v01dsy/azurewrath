@@ -27,41 +27,34 @@ export async function fetchRobloxHeadshotUrl(userId: string, size: string = '150
  * Fetches the full inventory for a Roblox user by userId, scanning all relevant asset types.
  */
 export async function scanFullInventory(userId: string) {
-  const assetTypes = [
-    8,  // Hat
-    41, // Hair Accessory
-    42, // Face Accessory
-    43, // Neck Accessory
-    44, // Shoulder Accessory
-    45, // Front Accessory
-    46, // Back Accessory
-    47, // Waist Accessory
-    2,  // T-Shirt
-    11, // Shirt
-    12, // Pants
-    64, // Layered Clothing
-  ];
-
   const fullInventory: any[] = [];
+  let cursor: string | null = null;
 
-  for (const assetType of assetTypes) {
-    let cursor: string | null = null;
-    try {
-      do {
-        const url: string = cursor
-          ? `https://inventory.roblox.com/v2/users/${userId}/inventory/${assetType}?sortOrder=Asc&limit=100&cursor=${cursor}`
-          : `https://inventory.roblox.com/v2/users/${userId}/inventory/${assetType}?sortOrder=Asc&limit=100`;
+  try {
+    do {
+      const url: string = cursor
+        ? `https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?sortOrder=Asc&limit=100&cursor=${cursor}`
+        : `https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?sortOrder=Asc&limit=100`;
 
-        const response = await axios.get(url);
-        const data = response.data;
-        if (data && Array.isArray(data.data)) {
-          fullInventory.push(...data.data);
-        }
-        cursor = data.nextPageCursor || null;
-      } while (cursor);
-    } catch (error) {
-      console.warn(`Failed to fetch inventory for assetType ${assetType} and userId ${userId}:`, error);
-    }
+      const response = await axios.get(url, {
+        timeout: 15000, // 15 second timeout
+      });
+      const data = response.data;
+      
+      if (data && Array.isArray(data.data)) {
+        fullInventory.push(...data.data);
+      }
+      
+      cursor = data.nextPageCursor || null;
+      
+      // Add delay to avoid rate limiting
+      if (cursor) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    } while (cursor);
+  } catch (error) {
+    console.warn(`Failed to fetch collectibles for userId ${userId}:`, error);
+    // Return what we have so far instead of crashing
   }
 
   return fullInventory;
