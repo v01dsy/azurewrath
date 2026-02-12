@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import ProfileDropdown from '../components/ProfileDropdown';
 
@@ -21,6 +22,19 @@ export default function RootLayout({
         <link rel="icon" type="image/png" href="/Images/icon.png" />
       </head>
       <body className="bg-[#0a0a0a] text-[#e0e0e0]">
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-220BXG48P2"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-220BXG48P2');
+          `}
+        </Script>
+        
         <nav className="navbar" aria-label="Main navigation">
           <a href="/">
             <img src="/Images/azurewrath-logo2.png" alt="Azurewrath logo" draggable="false" />
