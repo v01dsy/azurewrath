@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import React from "react";
+import { LocalTime } from "@/components/LocalTime";
 
 interface UAIDPageProps {
   params: Promise<{ uaid: string }>;
@@ -245,14 +246,7 @@ export default async function UAIDPage({ params }: UAIDPageProps) {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-slate-400 text-sm">
-                            {new Date(item.scannedAt).toLocaleString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
+                            <LocalTime date={item.scannedAt.toISOString()} />
                           </div>
                         </td>
                       </tr>
