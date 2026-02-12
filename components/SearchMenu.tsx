@@ -109,7 +109,7 @@ export default function SearchMenu({ mode }: SearchMenuProps) {
     if (mode === 'player') {
       router.push(`/player/${item.assetId}`); // Route to player profile
     } else {
-      router.push(`/items/${item.assetId}`); // Route to item page
+      router.push(`/item/${item.assetId}`); // Route to item page
     }
     setQuery('');
     setIsOpen(false);
@@ -124,7 +124,7 @@ export default function SearchMenu({ mode }: SearchMenuProps) {
     : `No players found matching "${query}"`;
 
   const noResultsSubtext = mode === 'limited'
-    ? "Try searching with the item name or asset ID"
+    ? "Try searching with the item name or asset ID"  
     : "Try searching with the player's username";
 
   return (

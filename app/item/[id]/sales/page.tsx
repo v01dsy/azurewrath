@@ -104,7 +104,7 @@ export default function SalesHistoryPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Back Button */}
         <button
-          onClick={() => router.push(`/items/${itemId}`)}
+          onClick={() => router.push(`/item/${itemId}`)}
           className="text-purple-400 hover:text-purple-300 transition flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

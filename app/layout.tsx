@@ -16,21 +16,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" role="document">
       <head>
         <link rel="icon" type="image/png" href="/Images/icon.png" />
       </head>
       <body className="bg-[#0a0a0a] text-[#e0e0e0]">
-        <nav className="navbar">
+        <nav className="navbar" aria-label="Main navigation">
           <a href="/">
-            <img src="/Images/azurewrath-logo2.png" alt="Logo" draggable="false" />
+            <img src="/Images/azurewrath-logo2.png" alt="Azurewrath logo" draggable="false" />
           </a>
           <a href="/search">
-            <img src="/Images/search.png" alt="Search" draggable="false" />
+            <img src="/Images/search.png" alt="Search icon" draggable="false" />
             <p>Search</p>
           </a>
           <a href="/deals">
-            <img src="/Images/deals.png" alt="Deals" draggable="false" />
+            <img src="/Images/deals.png" alt="Deals icon" draggable="false" />
             <p>Deals</p>
           </a>
           <ProfileDropdown />
