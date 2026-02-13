@@ -1,9 +1,27 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import RobloxAuthSection from "../../components/RobloxAuthSection";
+import { useSearchParams } from "next/navigation";
 
 export default function VerifyPage() {
   const [method, setMethod] = useState<"bio" | "roblox" | null>(null);
+  const searchParams = useSearchParams();
+  const verified = searchParams.get("verified");
+  const error = searchParams.get("error");
+
+  useEffect(() => {
+    if (verified === "true") {
+      alert("Successfully verified with Roblox!");
+    }
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        invalid_state: "Security verification failed. Please try again.",
+        no_code: "Authorization code not received. Please try again.",
+        oauth_failed: "OAuth authentication failed. Please try again.",
+      };
+      alert(errorMessages[error] || "An error occurred. Please try again.");
+    }
+  }, [verified, error]);
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
@@ -35,9 +53,16 @@ export default function VerifyPage() {
         )}
         {method === "roblox" && (
           <div className="mt-4">
-            <h2 className="text-xl font-bold text-white mb-2">Roblox OAuth (Coming Soon)</h2>
-            <p className="text-blue-200 mb-2">This method will allow you to securely verify your account using Roblox's official login system. Stay tuned!</p>
-            <a href="https://devforum.roblox.com/t/oauth-20-roblox-api/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">Learn about Roblox OAuth</a>
+            <h2 className="text-xl font-bold text-white mb-2">Roblox OAuth</h2>
+            <p className="text-blue-200 mb-4">
+              Securely verify your account using Roblox's official login system.
+            </p>
+            <button
+              onClick={() => window.location.href = '/api/auth/roblox'}
+              className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-lg"
+            >
+              Login with Roblox
+            </button>
           </div>
         )}
       </div>
