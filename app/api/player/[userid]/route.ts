@@ -137,10 +137,12 @@ export async function GET(
         SELECT 
           ii."assetId",
           ii."userAssetId",
+          ii."serialNumber",
           i.name,
           i."imageUrl",
           ph.rap,
           ARRAY_AGG(ii."userAssetId") OVER (PARTITION BY ii."assetId") as user_asset_ids,
+          ARRAY_AGG(ii."serialNumber") OVER (PARTITION BY ii."assetId") as serial_numbers,
           COUNT(*) OVER (PARTITION BY ii."assetId") as item_count
         FROM "InventoryItem" ii
         INNER JOIN LatestSnapshot ls ON ii."snapshotId" = ls.id
@@ -160,7 +162,7 @@ export async function GET(
         "imageUrl",
         COALESCE(rap, 0) as rap,
         item_count::int as "itemCount",
-        ARRAY[]::int[] as "serialNumbers",
+        serial_numbers as "serialNumbers",
         user_asset_ids as "userAssetIds"
       FROM InventoryWithPrices
       ORDER BY "assetId", rap DESC NULLS LAST
