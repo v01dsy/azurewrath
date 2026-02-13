@@ -44,31 +44,45 @@ export default function InventoryGraph({ data, onPointClick }: InventoryGraphPro
     { dataKey: 'uniqueCount', name: 'Unique Limiteds', color: '#a78bfa' },
   ];
 
-  const getIncrement = (value: number) => {
-    if (value <= 1000) return 100;
-    if (value <= 10000) return 1000;
-    if (value <= 25000) return 5000;
-    if (value <= 100000) return 10000;
-    if (value <= 250000) return 50000;
-    if (value <= 400000) return 100000;
-    if (value <= 1000000) return 100000;
-    return 500000;
-  };
-
   const getAxisMax = (dataMax: number) => {
-    const ceilings = [1000, 10000, 25000, 100000, 250000, 400000, 1000000, 2000000, 5000000];
-    const ceiling = ceilings.find(c => dataMax < c) ?? dataMax * 2;
-    const increment = getIncrement(ceiling);
-    return Math.ceil(ceiling / increment) * increment;
+    // Target around 66% of the ceiling
+    const targetCeiling = dataMax * 1.5;
+    
+    // Round to the CLOSEST nice clean number
+    const magnitude = Math.pow(10, Math.floor(Math.log10(targetCeiling)));
+    const normalized = targetCeiling / magnitude;
+    
+    // Find the closest nice number
+    const niceNumbers = [1, 2, 4, 5, 8, 10];
+    let closestNumber = niceNumbers[0];
+    let closestDiff = Math.abs(normalized - niceNumbers[0]);
+    
+    for (const num of niceNumbers) {
+      const diff = Math.abs(normalized - num);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestNumber = num;
+      }
+    }
+    
+    const ceiling = closestNumber * magnitude;
+    return ceiling;
   };
 
-  // Left axis ticks
+  const getIncrement = (ceiling: number) => {
+    // Always divide ceiling by 4 for exactly 4 segments
+    return ceiling / 4;
+  };
+
+  // Left axis ticks (always exactly 5 ticks = 4 segments)
   const rapTicks = (() => {
     const dataMax = data.length ? Math.max(...data.map(d => d.rap)) : 0;
     const max = getAxisMax(dataMax);
-    const increment = getIncrement(max);
+    const increment = max / 4; // Divide by 4 to get exactly 4 segments
     const ticks = [];
-    for (let i = 0; i <= max; i += increment) ticks.push(i);
+    for (let i = 0; i <= 4; i++) {
+      ticks.push(i * increment);
+    }
     return ticks;
   })();
 
@@ -106,8 +120,8 @@ export default function InventoryGraph({ data, onPointClick }: InventoryGraphPro
   };
 
   return (
-    <div className="w-full flex flex-col" style={{ height: '100%', minHeight: '400px' }}>
-      <div className="flex-1" style={{ minHeight: 0 }}>
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart 
             data={data} 

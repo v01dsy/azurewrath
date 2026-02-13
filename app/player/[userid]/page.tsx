@@ -45,6 +45,7 @@ interface PlayerData {
   inventory: InventoryItem[];
   stats: Stats;
   graphData: GraphDataPoint[];
+  isPrivate?: boolean;
 }
 
 // Helper function for "time ago"
@@ -73,13 +74,14 @@ function timeAgo(dateString: string): string {
 }
 
 export default function PlayerPage({ params: paramsPromise }: { params: Promise<{ userid: string }> }) {
-  const params = use(paramsPromise); // Unwrap the Promise
+  const params = use(paramsPromise);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PlayerData | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedSnapshot, setSelectedSnapshot] = useState<{ id: string; date: string } | null>(null);
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
 
   useEffect(() => {
     fetchPlayerData();
@@ -90,7 +92,6 @@ export default function PlayerPage({ params: paramsPromise }: { params: Promise<
       setLoading(true);
       setError(null);
 
-      // Fetch player data from API
       const response = await fetch(`/api/player/${params.userid}`);
       
       if (!response.ok) {
@@ -118,33 +119,6 @@ export default function PlayerPage({ params: paramsPromise }: { params: Promise<
     setShowModal(true);
   };
 
-  const handleRescan = async () => {
-    if (!data) return;
-    
-    const confirmed = confirm('This will scan the inventory from Roblox and create a new snapshot. Continue?');
-    if (!confirmed) return;
-
-    try {
-      setLoading(true);
-      // Trigger rescan API endpoint (you'll need to create this)
-      const response = await fetch(`/api/player/${params.userid}/rescan`, {
-        method: 'POST'
-      });
-
-      if (response.ok) {
-        // Refresh data after rescan
-        await fetchPlayerData();
-      } else {
-        alert('Failed to rescan inventory');
-      }
-    } catch (err) {
-      console.error('Rescan error:', err);
-      alert('Failed to rescan inventory');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading && !data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -162,7 +136,20 @@ export default function PlayerPage({ params: paramsPromise }: { params: Promise<
             This user isn't in the database yet. Would you like to add them?
           </p>
           <button 
-            onClick={() => router.push(`/api/load-user/${params.userid}`)}
+            onClick={async () => {
+              try {
+                const response = await fetch(`/api/load-user/${params.userid}`, {
+                  method: 'POST'
+                });
+                if (response.ok) {
+                  fetchPlayerData();
+                } else {
+                  alert('Failed to add user');
+                }
+              } catch (err) {
+                alert('Error adding user');
+              }
+            }}
             className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
           >
             Add User to Database
@@ -180,7 +167,7 @@ export default function PlayerPage({ params: paramsPromise }: { params: Promise<
     );
   }
 
-  const { user, inventory, stats, graphData } = data;
+  const { user, inventory, stats, graphData, isPrivate } = data;
   const scannedTime = stats.lastScanned ? timeAgo(stats.lastScanned) : null;
 
   return (
@@ -209,36 +196,53 @@ export default function PlayerPage({ params: paramsPromise }: { params: Promise<
                   <h1 className="text-2xl font-bold text-white">{user.displayName || user.username}</h1>
                   <p className="text-purple-300">@{user.username}</p>
                 </div>
+                
+                {/* Description with View More */}
                 {user.description && (
-                  <p className="text-slate-300 text-sm">{user.description}</p>
+                  <div>
+                    <p className="text-slate-300 text-sm truncate">
+                      {user.description}
+                    </p>
+                    <button
+                      onClick={() => setShowDescriptionModal(true)}
+                      className="text-purple-400 hover:text-purple-300 text-xs mt-1 transition-colors"
+                    >
+                      View more
+                    </button>
+                  </div>
                 )}
+                
                 <div className="text-slate-400 text-xs">
                   Roblox ID: {user.robloxUserId}
                 </div>
-                {/* Stats */}
-                <div className="space-y-2 pt-4 border-t border-slate-700">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">Total Items</span>
-                    <span className="text-blue-400 font-semibold">{stats.totalItems}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">Unique Items</span>
-                    <span className="text-purple-400 font-semibold">{stats.uniqueItems}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">Total RAP</span>
-                    <span className="text-green-400 font-semibold">{stats.totalRAP.toLocaleString()} R$</span>
-                  </div>
-                </div>
 
-                {/* Rescan Button */}
-                <button
-                  onClick={handleRescan}
-                  disabled={loading}
-                  className="w-full mt-4 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                >
-                  {loading ? 'Scanning...' : 'Rescan Inventory'}
-                </button>
+                {/* Show private warning if inventory is private */}
+                {isPrivate && (
+                  <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-amber-400 text-sm">
+                      <span>🔒</span>
+                      <span className="font-medium">Inventory is Private</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stats - only show if not private */}
+                {!isPrivate && (
+                  <div className="space-y-2 pt-4 border-t border-slate-700">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">Total Items</span>
+                      <span className="text-blue-400 font-semibold">{stats.totalItems}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">Unique Items</span>
+                      <span className="text-purple-400 font-semibold">{stats.uniqueItems}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">Total RAP</span>
+                      <span className="text-green-400 font-semibold">{stats.totalRAP.toLocaleString()} R$</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -246,17 +250,41 @@ export default function PlayerPage({ params: paramsPromise }: { params: Promise<
           {/* Right Side - Graph */}
           <div className="flex-1 min-h-[400px]">
             <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-8 h-full">
-              <InventoryGraph 
-                data={graphData} 
-                onPointClick={handleGraphPointClick}
-              />
+              {isPrivate ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">🔒</div>
+                    <h3 className="text-white text-2xl font-semibold mb-2">
+                      Inventory is Private
+                    </h3>
+                    <p className="text-slate-400">
+                      This user has their inventory settings set to private.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <InventoryGraph 
+                  data={graphData} 
+                  onPointClick={handleGraphPointClick}
+                />
+              )}
             </div>
           </div>
         </div>
 
         {/* Inventory Grid - Full Width Below */}
         <div>
-          <ClientInventoryGrid items={inventory as any[]} scannedTime={scannedTime} />
+          {isPrivate ? (
+            <div className="bg-slate-800 rounded-2xl border border-purple-500/20 p-12 text-center">
+              <div className="text-slate-400 text-xl mb-4">🔒</div>
+              <h3 className="text-white text-2xl mb-2">Inventory is Private</h3>
+              <p className="text-slate-400">
+                This player has their inventory settings set to private.
+              </p>
+            </div>
+          ) : (
+            <ClientInventoryGrid items={inventory as any[]} scannedTime={scannedTime} />
+          )}
         </div>
       </div>
 
@@ -267,6 +295,32 @@ export default function PlayerPage({ params: paramsPromise }: { params: Promise<
         snapshotId={selectedSnapshot?.id || null}
         snapshotDate={selectedSnapshot?.date || ''}
       />
+
+      {/* Description Modal */}
+      {showDescriptionModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDescriptionModal(false)}
+        >
+          <div 
+            className="bg-slate-800 rounded-2xl border border-purple-500/20 p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-white text-xl font-semibold">About {user.displayName || user.username}</h3>
+              <button
+                onClick={() => setShowDescriptionModal(false)}
+                className="text-slate-400 hover:text-white transition-colors text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-slate-300 whitespace-pre-wrap">
+              {user.description}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

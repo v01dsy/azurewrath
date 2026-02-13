@@ -121,11 +121,16 @@ model User {
 }
 
 model InventorySnapshot {
-  id        String          @id @default(cuid())
-  userId    String
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     InventoryItem[]
-  createdAt DateTime        @default(now())
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         InventoryItem[]
+  
+  totalRAP      Float?
+  totalItems    Int?
+  uniqueItems   Int?
+  
+  createdAt     DateTime        @default(now())
   
   @@index([userId, createdAt])
   @@index([createdAt])
