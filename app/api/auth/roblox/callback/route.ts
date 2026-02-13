@@ -9,6 +9,9 @@ export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   const storedState = cookieStore.get('oauth_state')?.value;
   
+  console.log('Callback received - code:', code ? 'present' : 'missing');
+  console.log('State match:', state === storedState);
+  
   if (state !== storedState) {
     return NextResponse.redirect(new URL('/verify?error=invalid_state', request.url));
   }
@@ -18,26 +21,38 @@ export async function GET(request: NextRequest) {
   }
   
   try {
+    const clientId = process.env.ROBLOX_CLIENT_ID;
+    const clientSecret = process.env.ROBLOX_CLIENT_SECRET;
+    const redirectUri = process.env.ROBLOX_REDIRECT_URI;
+    
+    console.log('Env vars - clientId:', clientId ? 'set' : 'MISSING');
+    console.log('Env vars - clientSecret:', clientSecret ? 'set' : 'MISSING');
+    console.log('Env vars - redirectUri:', redirectUri || 'MISSING');
+    
     const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Authorization': `Basic ${Buffer.from(
-          `${process.env.ROBLOX_CLIENT_ID}:${process.env.ROBLOX_CLIENT_SECRET}`
+          `${clientId}:${clientSecret}`
         ).toString('base64')}`,
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: process.env.ROBLOX_REDIRECT_URI!,
+        redirect_uri: redirectUri!,
       }),
     });
     
+    console.log('Token response status:', tokenResponse.status);
+    const tokenText = await tokenResponse.text();
+    console.log('Token response body:', tokenText);
+    
     if (!tokenResponse.ok) {
-      throw new Error('Token exchange failed');
+      throw new Error(`Token exchange failed: ${tokenResponse.status} - ${tokenText}`);
     }
     
-    const tokens = await tokenResponse.json();
+    const tokens = JSON.parse(tokenText);
     
     const userInfoResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
       headers: {
