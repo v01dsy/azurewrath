@@ -6,6 +6,26 @@ export async function GET() {
   const redirectUri = process.env.ROBLOX_REDIRECT_URI;
   const state = Math.random().toString(36).substring(2, 15);
   
+  // Debug logging
+  console.log('Environment variables check:');
+  console.log('CLIENT_ID:', clientId ? 'Set' : 'MISSING');
+  console.log('REDIRECT_URI:', redirectUri ? redirectUri : 'MISSING');
+  console.log('All env vars:', Object.keys(process.env).filter(key => key.startsWith('ROBLOX')));
+  
+  // Fail early if missing
+  if (!clientId || !redirectUri) {
+    return NextResponse.json(
+      { 
+        error: 'Missing environment variables',
+        details: {
+          clientId: clientId ? 'set' : 'missing',
+          redirectUri: redirectUri || 'missing'
+        }
+      },
+      { status: 500 }
+    );
+  }
+  
   // Store state in cookie for CSRF protection
   const cookieStore = await cookies();
   cookieStore.set('oauth_state', state, {
@@ -15,8 +35,8 @@ export async function GET() {
   });
   
   const authUrl = new URL('https://apis.roblox.com/oauth/v1/authorize');
-  authUrl.searchParams.append('client_id', clientId!);
-  authUrl.searchParams.append('redirect_uri', redirectUri!);
+  authUrl.searchParams.append('client_id', clientId);
+  authUrl.searchParams.append('redirect_uri', redirectUri);
   authUrl.searchParams.append('scope', 'openid profile');
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('state', state);
