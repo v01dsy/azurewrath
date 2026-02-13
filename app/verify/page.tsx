@@ -63,7 +63,7 @@ function VerifyContent() {
     }
   }, [searchParams]);
 
-  const handleOAuthCallback = async (code: string, state: string) => {
+ const handleOAuthCallback = async (code: string, state: string) => {
   setOauthStatus('loading');
   
   const storedState = sessionStorage.getItem('oauth_state');
@@ -109,10 +109,10 @@ function VerifyContent() {
     setOauthStatus('success');
     console.log('User info:', data.userInfo);
     
-    // Redirect to dashboard or home page after 2 seconds
+    // Redirect to their profile after 1.5 seconds
     setTimeout(() => {
-      window.location.href = '/dashboard'; // Change this to wherever you want users to go
-    }, 2000);
+      window.location.href = `/profile/${data.userInfo.sub}`;
+    }, 1500);
     
   } catch (error) {
     setOauthStatus('error');
