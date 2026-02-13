@@ -1,24 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const code = searchParams.get('code');
-  const state = searchParams.get('state');
-  
-  const cookieStore = await cookies();
-  const storedState = cookieStore.get('oauth_state')?.value;
-  const codeVerifier = cookieStore.get('code_verifier')?.value;
-  
-  if (state !== storedState) {
-    return NextResponse.redirect(new URL('/verify?error=invalid_state', request.url));
-  }
-  
-  if (!code || !codeVerifier) {
-    return NextResponse.redirect(new URL('/verify?error=no_code', request.url));
-  }
-  
+export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    const { code, code_verifier } = body;
+    
+    if (!code || !code_verifier) {
+      return NextResponse.json(
+        { error: 'Missing code or code_verifier' },
+        { status: 400 }
+      );
+    }
+    
+    // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
       method: 'POST',
       headers: {
@@ -30,18 +24,22 @@ export async function GET(request: NextRequest) {
         client_id: process.env.ROBLOX_CLIENT_ID!,
         client_secret: process.env.ROBLOX_CLIENT_SECRET!,
         redirect_uri: process.env.ROBLOX_REDIRECT_URI!,
-        code_verifier: codeVerifier,
+        code_verifier: code_verifier,
       }),
     });
     
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
       console.error('Token exchange failed:', error);
-      throw new Error('Token exchange failed');
+      return NextResponse.json(
+        { error: 'Token exchange failed', details: error },
+        { status: 400 }
+      );
     }
     
     const tokens = await tokenResponse.json();
     
+    // Get user info
     const userInfoResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
       headers: {
         'Authorization': `Bearer ${tokens.access_token}`,
@@ -49,16 +47,28 @@ export async function GET(request: NextRequest) {
     });
     
     if (!userInfoResponse.ok) {
-      throw new Error('Failed to get user info');
+      return NextResponse.json(
+        { error: 'Failed to get user info' },
+        { status: 400 }
+      );
     }
     
     const userInfo = await userInfoResponse.json();
     
     console.log('Roblox User Info:', userInfo);
     
-    return NextResponse.redirect(new URL('/verify?verified=true', request.url));
+    // TODO: Create session, store user in database, etc.
+    
+    return NextResponse.json({ 
+      success: true,
+      userInfo 
+    });
+    
   } catch (error) {
     console.error('OAuth error:', error);
-    return NextResponse.redirect(new URL('/verify?error=oauth_failed', request.url));
+    return NextResponse.json(
+      { error: 'OAuth process failed' },
+      { status: 500 }
+    );
   }
 }
