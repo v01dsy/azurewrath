@@ -64,60 +64,64 @@ function VerifyContent() {
   }, [searchParams]);
 
   const handleOAuthCallback = async (code: string, state: string) => {
-    setOauthStatus('loading');
+  setOauthStatus('loading');
+  
+  const storedState = sessionStorage.getItem('oauth_state');
+  const codeVerifier = sessionStorage.getItem('code_verifier');
+
+  if (state !== storedState) {
+    setOauthStatus('error');
+    setOauthError('Invalid state parameter - security check failed');
+    alert('Security verification failed. Please try again.');
+    return;
+  }
+
+  if (!codeVerifier) {
+    setOauthStatus('error');
+    setOauthError('Missing code verifier');
+    alert('Verification data missing. Please try again.');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/auth/roblox/callback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code,
+        code_verifier: codeVerifier,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Token exchange failed');
+    }
+
+    const data = await response.json();
     
-    const storedState = sessionStorage.getItem('oauth_state');
-    const codeVerifier = sessionStorage.getItem('code_verifier');
-
-    if (state !== storedState) {
-      setOauthStatus('error');
-      setOauthError('Invalid state parameter - security check failed');
-      alert('Security verification failed. Please try again.');
-      return;
-    }
-
-    if (!codeVerifier) {
-      setOauthStatus('error');
-      setOauthError('Missing code verifier');
-      alert('Verification data missing. Please try again.');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/auth/roblox/callback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code,
-          code_verifier: codeVerifier,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Token exchange failed');
-      }
-
-      const data = await response.json();
-      
-      // Clear the stored values
-      sessionStorage.removeItem('oauth_state');
-      sessionStorage.removeItem('code_verifier');
-      
-      setOauthStatus('success');
-      alert('Successfully verified with Roblox!');
-      console.log('User info:', data.userInfo);
-      
-    } catch (error) {
-      setOauthStatus('error');
-      const errorMsg = error instanceof Error ? error.message : 'OAuth verification failed';
-      setOauthError(errorMsg);
-      alert(`Verification failed: ${errorMsg}`);
-      console.error(error);
-    }
-  };
+    // Clear the stored values
+    sessionStorage.removeItem('oauth_state');
+    sessionStorage.removeItem('code_verifier');
+    
+    setOauthStatus('success');
+    console.log('User info:', data.userInfo);
+    
+    // Redirect to dashboard or home page after 2 seconds
+    setTimeout(() => {
+      window.location.href = '/dashboard'; // Change this to wherever you want users to go
+    }, 2000);
+    
+  } catch (error) {
+    setOauthStatus('error');
+    const errorMsg = error instanceof Error ? error.message : 'OAuth verification failed';
+    setOauthError(errorMsg);
+    alert(`Verification failed: ${errorMsg}`);
+    console.error(error);
+  }
+};
 
   const handleRobloxLogin = async () => {
     try {

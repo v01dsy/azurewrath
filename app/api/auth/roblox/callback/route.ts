@@ -1,4 +1,6 @@
+// app/api/auth/roblox/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +59,33 @@ export async function POST(request: NextRequest) {
     
     console.log('Roblox User Info:', userInfo);
     
-    // TODO: Create session, store user in database, etc.
+    // TODO: Save user to database here
+    // Example:
+    // await prisma.user.upsert({
+    //   where: { robloxId: userInfo.sub },
+    //   update: { 
+    //     username: userInfo.preferred_username,
+    //     lastLogin: new Date()
+    //   },
+    //   create: {
+    //     robloxId: userInfo.sub,
+    //     username: userInfo.preferred_username,
+    //   }
+    // });
+    
+    // Create a session cookie
+    const cookieStore = await cookies();
+    cookieStore.set('roblox_user', JSON.stringify({
+      id: userInfo.sub,
+      username: userInfo.preferred_username,
+      profile_picture: userInfo.picture,
+    }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
     
     return NextResponse.json({ 
       success: true,
