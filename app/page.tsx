@@ -119,6 +119,7 @@ export default function Home() {
               Platform Stats
             </h5>
 
+            
             {statsError ? (
               <p className="text-slate-500 text-sm">Stats unavailable.</p>
             ) : (
